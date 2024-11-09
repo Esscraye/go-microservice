@@ -1,11 +1,15 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
+	"fmt"
 	"log"
 	"net/http"
+	"strings"
+
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 type Product struct {
@@ -33,7 +37,7 @@ func migrate() {
 func productsHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
-		getProducts(w, r)
+		getProducts(w)
 	case "POST":
 		createProduct(w, r)
 	default:
@@ -45,17 +49,17 @@ func productHandler(w http.ResponseWriter, r *http.Request) {
 	id := r.URL.Path[len("/products/"):]
 	switch r.Method {
 	case "GET":
-		getProduct(w, r, id)
+		getProduct(w, id)
 	case "PUT":
 		updateProduct(w, r, id)
 	case "DELETE":
-		deleteProduct(w, r, id)
+		deleteProduct(w, id)
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
 }
 
-func getProducts(w http.ResponseWriter, r *http.Request) {
+func getProducts(w http.ResponseWriter) {
 	var products []Product
 	if err := db.Find(&products).Error; err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -77,7 +81,7 @@ func createProduct(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
-func getProduct(w http.ResponseWriter, r *http.Request, id string) {
+func getProduct(w http.ResponseWriter, id string) {
 	var product Product
 	if err := db.First(&product, "id = ?", id).Error; err != nil {
 		http.Error(w, "Product not found", http.StatusNotFound)
@@ -99,12 +103,47 @@ func updateProduct(w http.ResponseWriter, r *http.Request, id string) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func deleteProduct(w http.ResponseWriter, r *http.Request, id string) {
+func deleteProduct(w http.ResponseWriter, id string) {
 	if err := db.Delete(&Product{}, "id = ?", id).Error; err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
+}
+
+type contextKey string
+
+const userIDKey contextKey = "user_id"
+
+func jwtMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		token := r.Header.Get("Authorization")
+		if token == "" {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		resp, err := http.Post("http://auth-service:8080/verify-token", "application/json", strings.NewReader(fmt.Sprintf(`{"token":"%s"}`, token)))
+		if err != nil {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		if resp.StatusCode != http.StatusOK {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		var result struct {
+			UserID string `json:"user_id"`
+		}
+		if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+		ctx := context.WithValue(r.Context(), userIDKey, result.UserID)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
 }
 
 func healthHandler(w http.ResponseWriter, r *http.Request) {
@@ -116,10 +155,11 @@ func main() {
 	initDB()
 	migrate()
 
-	http.HandleFunc("/products", productsHandler)
-	http.HandleFunc("/products/", productHandler)
-	http.HandleFunc("/health", healthHandler)
+	mux := http.NewServeMux()
+	mux.Handle("/products", jwtMiddleware(http.HandlerFunc(productsHandler)))
+	mux.Handle("/products/", jwtMiddleware(http.HandlerFunc(productHandler)))
+	mux.HandleFunc("/health", healthHandler)
 
 	log.Println("Starting Product Service on :8081")
-	log.Fatal(http.ListenAndServe(":8081", nil))
+	log.Fatal(http.ListenAndServe(":8081", mux))
 }

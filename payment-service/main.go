@@ -1,10 +1,12 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -35,7 +37,7 @@ func migrate() {
 func paymentsHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
-		getPayments(w, r)
+		getPayments(w)
 	case "POST":
 		createPayment(w, r)
 	default:
@@ -47,17 +49,17 @@ func paymentHandler(w http.ResponseWriter, r *http.Request) {
 	id := r.URL.Path[len("/payments/"):]
 	switch r.Method {
 	case "GET":
-		getPayment(w, r, id)
+		getPayment(w, id)
 	case "PUT":
 		updatePayment(w, r, id)
 	case "DELETE":
-		deletePayment(w, r, id)
+		deletePayment(w, id)
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
 }
 
-func getPayments(w http.ResponseWriter, r *http.Request) {
+func getPayments(w http.ResponseWriter) {
 	var payments []Payment
 	if err := db.Find(&payments).Error; err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -95,7 +97,7 @@ func checkOrderExists(orderID string) bool {
 	return true
 }
 
-func getPayment(w http.ResponseWriter, r *http.Request, id string) {
+func getPayment(w http.ResponseWriter, id string) {
 	var payment Payment
 	if err := db.First(&payment, "id = ?", id).Error; err != nil {
 		http.Error(w, "Payment not found", http.StatusNotFound)
@@ -117,12 +119,43 @@ func updatePayment(w http.ResponseWriter, r *http.Request, id string) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func deletePayment(w http.ResponseWriter, r *http.Request, id string) {
+func deletePayment(w http.ResponseWriter, id string) {
 	if err := db.Delete(&Payment{}, "id = ?", id).Error; err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
+}
+
+func jwtMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		token := r.Header.Get("Authorization")
+		if token == "" {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		resp, err := http.Post("http://auth-service:8080/verify-token", "application/json", strings.NewReader(fmt.Sprintf(`{"token":"%s"}`, token)))
+		if err != nil {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		if resp.StatusCode != http.StatusOK {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		var result struct {
+			UserID string `json:"user_id"`
+		}
+		if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+		ctx := context.WithValue(r.Context(), "user_id", result.UserID)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
 }
 
 func healthHandler(w http.ResponseWriter, r *http.Request) {
@@ -134,10 +167,11 @@ func main() {
 	initDB()
 	migrate()
 
-	http.HandleFunc("/payments", paymentsHandler)
-	http.HandleFunc("/payments/", paymentHandler)
-	http.HandleFunc("/health", healthHandler)
+	mux := http.NewServeMux()
+	mux.Handle("/payments", jwtMiddleware(http.HandlerFunc(paymentsHandler)))
+	mux.Handle("/payments/", jwtMiddleware(http.HandlerFunc(paymentHandler)))
+	mux.HandleFunc("/health", healthHandler)
 
 	log.Println("Starting Payment Service on :8084")
-	log.Fatal(http.ListenAndServe(":8084", nil))
+	log.Fatal(http.ListenAndServe(":8084", mux))
 }

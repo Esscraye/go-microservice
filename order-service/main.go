@@ -1,11 +1,13 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"gorm.io/driver/postgres"
@@ -43,7 +45,7 @@ func migrate() {
 func ordersHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
-		getOrders(w, r)
+		getOrders(w)
 	case "POST":
 		createOrder(w, r)
 	default:
@@ -55,17 +57,17 @@ func orderHandler(w http.ResponseWriter, r *http.Request) {
 	id := r.URL.Path[len("/orders/"):]
 	switch r.Method {
 	case "GET":
-		getOrder(w, r, id)
+		getOrder(w, id)
 	case "PUT":
 		updateOrder(w, r, id)
 	case "DELETE":
-		deleteOrder(w, r, id)
+		deleteOrder(w, id)
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
 }
 
-func getOrders(w http.ResponseWriter, r *http.Request) {
+func getOrders(w http.ResponseWriter) {
 	var orders []Order
 	if err := db.Find(&orders).Error; err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -109,7 +111,7 @@ func checkProductAvailability(productID string) bool {
 	return false
 }
 
-func getOrder(w http.ResponseWriter, r *http.Request, id string) {
+func getOrder(w http.ResponseWriter, id string) {
 	var order Order
 	if err := db.First(&order, "id = ?", id).Error; err != nil {
 		http.Error(w, "Order not found", http.StatusNotFound)
@@ -131,12 +133,43 @@ func updateOrder(w http.ResponseWriter, r *http.Request, id string) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func deleteOrder(w http.ResponseWriter, r *http.Request, id string) {
+func deleteOrder(w http.ResponseWriter, id string) {
 	if err := db.Delete(&Order{}, "id = ?", id).Error; err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
+}
+
+func jwtMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		token := r.Header.Get("Authorization")
+		if token == "" {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		resp, err := http.Post("http://auth-service:8080/verify-token", "application/json", strings.NewReader(fmt.Sprintf(`{"token":"%s"}`, token)))
+		if err != nil {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		if resp.StatusCode != http.StatusOK {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		var result struct {
+			UserID string `json:"user_id"`
+		}
+		if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+		ctx := context.WithValue(r.Context(), "user_id", result.UserID)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
 }
 
 func healthHandler(w http.ResponseWriter, r *http.Request) {
@@ -148,10 +181,11 @@ func main() {
 	initDB()
 	migrate()
 
-	http.HandleFunc("/orders", ordersHandler)
-	http.HandleFunc("/orders/", orderHandler)
-	http.HandleFunc("/health", healthHandler)
+	mux := http.NewServeMux()
+	mux.Handle("/orders", jwtMiddleware(http.HandlerFunc(ordersHandler)))
+	mux.Handle("/orders/", jwtMiddleware(http.HandlerFunc(orderHandler)))
+	mux.HandleFunc("/health", healthHandler)
 
 	log.Println("Starting Order Service on :8083")
-	log.Fatal(http.ListenAndServe(":8083", nil))
+	log.Fatal(http.ListenAndServe(":8083", mux))
 }

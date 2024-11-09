@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 	"strings"
 
 	"gorm.io/driver/postgres"
@@ -21,9 +20,13 @@ type User struct {
 }
 
 var (
-	db     *gorm.DB
-	jwtKey = []byte(os.Getenv("JWT_SECRET"))
+	db *gorm.DB
 )
+
+// Define a custom type for the context key
+type contextKey string
+
+const userIDKey contextKey = "user_id"
 
 func initDB() {
 	dsn := "host=db user=user password=password dbname=microservices port=5432 sslmode=disable TimeZone=Asia/Shanghai"
@@ -41,7 +44,7 @@ func migrate() {
 func usersHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
-		getUsers(w, r)
+		getUsers(w)
 	case "POST":
 		createUser(w, r)
 	default:
@@ -53,17 +56,17 @@ func userHandler(w http.ResponseWriter, r *http.Request) {
 	id := r.URL.Path[len("/users/"):]
 	switch r.Method {
 	case "GET":
-		getUser(w, r, id)
+		getUser(w, id)
 	case "PUT":
 		updateUser(w, r, id)
 	case "DELETE":
-		deleteUser(w, r, id)
+		deleteUser(w, id)
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
 }
 
-func getUsers(w http.ResponseWriter, r *http.Request) {
+func getUsers(w http.ResponseWriter) {
 	var users []User
 	if err := db.Find(&users).Error; err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -85,7 +88,7 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
-func getUser(w http.ResponseWriter, r *http.Request, id string) {
+func getUser(w http.ResponseWriter, id string) {
 	var user User
 	if err := db.First(&user, "id = ?", id).Error; err != nil {
 		http.Error(w, "User not found", http.StatusNotFound)
@@ -107,7 +110,7 @@ func updateUser(w http.ResponseWriter, r *http.Request, id string) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func deleteUser(w http.ResponseWriter, r *http.Request, id string) {
+func deleteUser(w http.ResponseWriter, id string) {
 	if err := db.Delete(&User{}, "id = ?", id).Error; err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -124,7 +127,12 @@ func jwtMiddleware(next http.Handler) http.Handler {
 		}
 
 		resp, err := http.Post("http://auth-service:8080/verify-token", "application/json", strings.NewReader(fmt.Sprintf(`{"token":"%s"}`, token)))
-		if err != nil || resp.StatusCode != http.StatusOK {
+		if err != nil {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		if resp.StatusCode != http.StatusOK {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
@@ -136,7 +144,7 @@ func jwtMiddleware(next http.Handler) http.Handler {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
-		ctx := context.WithValue(r.Context(), "user_id", result.UserID)
+		ctx := context.WithValue(r.Context(), userIDKey, result.UserID)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

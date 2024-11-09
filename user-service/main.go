@@ -1,12 +1,13 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
-
-	"auth-service/pkg"
+	"strings"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -114,6 +115,32 @@ func deleteUser(w http.ResponseWriter, r *http.Request, id string) {
 	w.WriteHeader(http.StatusOK)
 }
 
+func jwtMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		token := r.Header.Get("Authorization")
+		if token == "" {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		resp, err := http.Post("http://auth-service:8080/verify-token", "application/json", strings.NewReader(fmt.Sprintf(`{"token":"%s"}`, token)))
+		if err != nil || resp.StatusCode != http.StatusOK {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		var result struct {
+			UserID string `json:"user_id"`
+		}
+		if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+		ctx := context.WithValue(r.Context(), "user_id", result.UserID)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
 func healthHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("OK"))
@@ -123,10 +150,11 @@ func main() {
 	initDB()
 	migrate()
 
-	http.Handle("/users", pkg.AuthMiddleware(http.HandlerFunc(usersHandler)))
-	http.Handle("/users/", pkg.AuthMiddleware(http.HandlerFunc(userHandler)))
-	http.HandleFunc("/health", healthHandler)
+	mux := http.NewServeMux()
+	mux.Handle("/users", jwtMiddleware(http.HandlerFunc(usersHandler)))
+	mux.Handle("/users/", jwtMiddleware(http.HandlerFunc(userHandler)))
+	mux.HandleFunc("/health", healthHandler)
 
 	log.Println("Starting User Service on :8082")
-	log.Fatal(http.ListenAndServe(":8082", nil))
+	log.Fatal(http.ListenAndServe(":8082", mux))
 }

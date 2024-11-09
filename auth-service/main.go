@@ -23,6 +23,35 @@ func generateJWT(userID string) (string, error) {
 	return tokenString, nil
 }
 
+func verifyJWT(tokenString string) (string, error) {
+	claims := &jwt.MapClaims{}
+	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+		return jwtKey, nil
+	})
+	if err != nil || !token.Valid {
+		return "", err
+	}
+	return (*claims)["user_id"].(string), nil
+}
+
+func verifyTokenHandler(w http.ResponseWriter, r *http.Request) {
+	var request struct {
+		Token string `json:"token"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	userID, err := verifyJWT(request.Token)
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	json.NewEncoder(w).Encode(map[string]string{"user_id": userID})
+}
+
 func loginHandler(w http.ResponseWriter, r *http.Request) {
 	var creds struct {
 		UserID   string `json:"user_id"`
@@ -50,6 +79,7 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	http.HandleFunc("/verify-token", verifyTokenHandler)
 	http.HandleFunc("/login", loginHandler)
 	http.HandleFunc("/health", healthHandler)
 

@@ -4,10 +4,8 @@ go 1.21
 
 toolchain go1.23.2
 
-replace auth-service => ../auth-service
 
 require (
-	auth-service v0.0.0
 	gorm.io/driver/postgres v1.5.9
 	gorm.io/gorm v1.25.12
 )

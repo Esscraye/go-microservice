@@ -1,5 +1,27 @@
 # Microservices Architecture Case Study
 
+## Lancement du projet
+
+Pour lancer le projet il vous faut avoir docker et docker-compose installé sur votre machine.
+
+ensuite vous pouvez lancer les microservices avec la commande suivante:
+
+```bash
+docker-compose up -d --build
+```
+
+Un script shel (run-test.sh) est disponible pour tester les services.
+
+```bash
+./run-test.sh
+```
+
+Et pour arrêter et supprimer complètement les docker containers (attention si vous avez d'autres volumes docker la commande suivante les supprimera aussi):
+
+```bash
+docker compose down --remove-orphans -v --rmi all && docker system prune -af && docker volume prune -af
+```
+
 ## Group Members
 
 - Member 1

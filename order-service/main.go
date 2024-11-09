@@ -77,6 +77,11 @@ func getOrders(w http.ResponseWriter) {
 }
 
 func createOrder(w http.ResponseWriter, r *http.Request) {
+	token := r.Header.Get("Authorization")
+	if token == "" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
 	var order Order
 	if err := json.NewDecoder(r.Body).Decode(&order); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -84,7 +89,7 @@ func createOrder(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Vérifier la disponibilité du produit
-	productAvailable := checkProductAvailability(order.ProductID)
+	productAvailable := checkProductAvailability(order.ProductID, token)
 	if !productAvailable {
 		http.Error(w, "Product not available", http.StatusBadRequest)
 		return
@@ -97,12 +102,18 @@ func createOrder(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
-func checkProductAvailability(productID string) bool {
+func checkProductAvailability(productID string, token string) bool {
 	client := &http.Client{
 		Timeout: 5 * time.Second,
 	}
 	for i := 0; i < 3; i++ {
-		resp, err := client.Get(fmt.Sprintf("%s/products/%s", productServiceURL, productID))
+		req, err := http.NewRequest("GET", fmt.Sprintf("%s/products/%s", productServiceURL, productID), nil)
+		if err != nil {
+			continue // Gérer l'erreur si nécessaire
+		}
+		req.Header.Set("Authorization", token) // Ajouter le token JWT dans l'en-tête
+
+		resp, err := client.Do(req) // Utiliser Do pour envoyer la requête
 		if err == nil && resp.StatusCode == http.StatusOK {
 			return true
 		}

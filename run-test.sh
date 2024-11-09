@@ -1,42 +1,11 @@
 #!/bin/bash
 
-docker compose down --remove-orphans -v --rmi all && docker system prune -af && docker volume prune -af
-docker compose up -d --build
-
 # Fonction pour obtenir un token JWT
 get_jwt_token() {
     local user_id=$1
     local password=$2
     local response=$(curl -s -X POST -H "Content-Type: application/json" -d "{\"user_id\":\"$user_id\",\"password\":\"$password\"}" http://localhost:8080/login)
     echo $(echo $response | jq -r .token)
-}
-
-product_service_tests() {
-    local port=8081
-    local uri=http://localhost:$port
-
-    echo "Testing product-service on port $port"
-
-    echo "Reading all products"
-    curl -s -H "Authorization: $jwt_token" $uri/products
-
-    echo "Creating a product"
-    curl -s -X POST -H "Content-Type: application/json" -H "Authorization: $jwt_token" -d '{"id":"3","name":"Product3","category":"Category3","price":300.0}' $uri/products
-
-    echo "Reading all products"
-    curl -s -H "Authorization: $jwt_token" $uri/products
-
-    echo "Updating a product"
-    curl -s -X PUT -H "Content-Type: application/json" -H "Authorization: $jwt_token" -d '{"id":"3","name":"UpdatedProduct","category":"UpdatedCategory","price":350.0}' $uri/products/3
-
-    echo "Reading the updated product"
-    curl -s -H "Authorization: $jwt_token" $uri/products/3
-
-    echo "Deleting a product"
-    curl -s -X DELETE -H "Authorization: $jwt_token" $uri/products/3
-
-    echo "Reading all products"
-    curl -s -H "Authorization: $jwt_token" $uri/products
 }
 
 user_service_tests() {
@@ -67,6 +36,35 @@ user_service_tests() {
     curl -s -H "Authorization: $jwt_token" $uri/users
 }
 
+product_service_tests() {
+    local port=8081
+    local uri=http://localhost:$port
+
+    echo "Testing product-service on port $port"
+
+    echo "Reading all products"
+    curl -s -H "Authorization: $jwt_token" $uri/products
+
+    echo "Creating a product"
+    curl -s -X POST -H "Content-Type: application/json" -H "Authorization: $jwt_token" -d '{"id":"3","name":"Product3","category":"Category3","price":300.0}' $uri/products
+
+    echo "Reading all products"
+    curl -s -H "Authorization: $jwt_token" $uri/products
+
+    echo "Updating a product"
+    curl -s -X PUT -H "Content-Type: application/json" -H "Authorization: $jwt_token" -d '{"id":"3","name":"UpdatedProduct","category":"UpdatedCategory","price":350.0}' $uri/products/3
+
+    echo "Reading the updated product"
+    curl -s -H "Authorization: $jwt_token" $uri/products/3
+
+    echo "Deleting a product"
+    curl -s -X DELETE -H "Authorization: $jwt_token" $uri/products/3
+
+    echo "Reading all products"
+    curl -s -H "Authorization: $jwt_token" $uri/products
+}
+
+
 order_service_tests() {
     local port=8083
     local uri=http://localhost:$port
@@ -76,8 +74,10 @@ order_service_tests() {
     echo "Reading all orders"
     curl -s -H "Authorization: $jwt_token" $uri/orders
 
-    echo "Creating an order"
+    echo "Creating many orders"
     curl -s -X POST -H "Content-Type: application/json" -H "Authorization: $jwt_token" -d '{"id":"1","user_id":"1","product_id":"1","quantity":2,"status":"pending"}' $uri/orders
+    curl -s -X POST -H "Content-Type: application/json" -H "Authorization: $jwt_token" -d '{"id":"2","user_id":"1","product_id":"2","quantity":2,"status":"pending"}' $uri/orders
+    curl -s -X POST -H "Content-Type: application/json" -H "Authorization: $jwt_token" -d '{"id":"3","user_id":"2","product_id":"1","quantity":2,"status":"pending"}' $uri/orders
 
     echo "Reading all orders"
     curl -s -H "Authorization: $jwt_token" $uri/orders
@@ -105,13 +105,13 @@ payment_service_tests() {
     curl -s -H "Authorization: $jwt_token" $uri/payments
 
     echo "Creating a payment"
-    curl -s -X POST -H "Content-Type: application/json" -H "Authorization: $jwt_token" -d '{"id":"1","order_id":"1","amount":100.0,"status":"pending"}' $uri/payments
+    curl -s -X POST -H "Content-Type: application/json" -H "Authorization: $jwt_token" -d '{"id":"1","order_id":"2","amount":100.0,"status":"pending"}' $uri/payments
 
     echo "Reading all payments"
     curl -s -H "Authorization: $jwt_token" $uri/payments
 
     echo "Updating a payment"
-    curl -s -X PUT -H "Content-Type: application/json" -H "Authorization: $jwt_token" -d '{"id":"1","order_id":"1","amount":150.0,"status":"completed"}' $uri/payments/1
+    curl -s -X PUT -H "Content-Type: application/json" -H "Authorization: $jwt_token" -d '{"id":"1","order_id":"2","amount":150.0,"status":"completed"}' $uri/payments/1
 
     echo "Reading the updated payment"
     curl -s -H "Authorization: $jwt_token" $uri/payments/1
@@ -155,8 +155,8 @@ notification_service_tests() {
 jwt_token=$(get_jwt_token "user1@example.com" "password")
 echo "JWT token: $jwt_token"
 # Tester les services
-product_service_tests
 user_service_tests
+product_service_tests
 order_service_tests
 payment_service_tests
 notification_service_tests

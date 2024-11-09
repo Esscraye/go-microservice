@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -69,6 +70,11 @@ func getPayments(w http.ResponseWriter) {
 }
 
 func createPayment(w http.ResponseWriter, r *http.Request) {
+	token := r.Header.Get("Authorization")
+	if token == "" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
 	var payment Payment
 	if err := json.NewDecoder(r.Body).Decode(&payment); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -76,7 +82,7 @@ func createPayment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Vérifier l'existence de la commande
-	orderExists := checkOrderExists(payment.OrderID)
+	orderExists := checkOrderExists(payment.OrderID, token)
 	if !orderExists {
 		http.Error(w, "Order not found", http.StatusBadRequest)
 		return
@@ -89,8 +95,17 @@ func createPayment(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
-func checkOrderExists(orderID string) bool {
-	resp, err := http.Get(fmt.Sprintf("http://order-service:8083/orders/%s", orderID))
+func checkOrderExists(orderID string, token string) bool {
+	client := &http.Client{
+		Timeout: 5 * time.Second,
+	}
+	req, err := http.NewRequest("GET", fmt.Sprintf("http://order-service:8083/orders/%s", orderID), nil)
+	if err != nil {
+		return false // Gérer l'erreur si nécessaire
+	}
+	req.Header.Set("Authorization", token) // Ajouter le token JWT dans l'en-tête
+
+	resp, err := client.Do(req) // Utiliser Do pour envoyer la requête
 	if err != nil || resp.StatusCode != http.StatusOK {
 		return false
 	}

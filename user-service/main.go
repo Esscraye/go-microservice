@@ -1,14 +1,13 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"log"
 	"net/http"
 	"os"
-	"time"
 
-	"github.com/dgrijalva/jwt-go"
+	"auth-service/pkg"
+
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -36,47 +35,6 @@ func initDB() {
 
 func migrate() {
 	db.AutoMigrate(&User{})
-}
-
-func generateJWT(userID string) (string, error) {
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"user_id": userID,
-		"exp":     time.Now().Add(time.Hour * 24).Unix(),
-	})
-	tokenString, err := token.SignedString(jwtKey)
-	if err != nil {
-		return "", err
-	}
-	return tokenString, nil
-}
-
-func verifyJWT(tokenString string) (string, error) {
-	claims := &jwt.MapClaims{}
-	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
-		return jwtKey, nil
-	})
-	if err != nil || !token.Valid {
-		return "", err
-	}
-	userID := (*claims)["user_id"].(string)
-	return userID, nil
-}
-
-func jwtMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		token := r.Header.Get("Authorization")
-		if token == "" {
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
-			return
-		}
-		userID, err := verifyJWT(token)
-		if err != nil {
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
-			return
-		}
-		ctx := context.WithValue(r.Context(), "user_id", userID)
-		next.ServeHTTP(w, r.WithContext(ctx))
-	})
 }
 
 func usersHandler(w http.ResponseWriter, r *http.Request) {
@@ -165,8 +123,8 @@ func main() {
 	initDB()
 	migrate()
 
-	http.Handle("/users", jwtMiddleware(http.HandlerFunc(usersHandler)))
-	http.Handle("/users/", jwtMiddleware(http.HandlerFunc(userHandler)))
+	http.Handle("/users", pkg.AuthMiddleware(http.HandlerFunc(usersHandler)))
+	http.Handle("/users/", pkg.AuthMiddleware(http.HandlerFunc(userHandler)))
 	http.HandleFunc("/health", healthHandler)
 
 	log.Println("Starting User Service on :8082")

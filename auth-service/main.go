@@ -23,18 +23,6 @@ func generateJWT(userID string) (string, error) {
 	return tokenString, nil
 }
 
-func verifyJWT(tokenString string) (string, error) {
-	claims := &jwt.MapClaims{}
-	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
-		return jwtKey, nil
-	})
-	if err != nil || !token.Valid {
-		return "", err
-	}
-	userID := (*claims)["user_id"].(string)
-	return userID, nil
-}
-
 func loginHandler(w http.ResponseWriter, r *http.Request) {
 	var creds struct {
 		UserID   string `json:"user_id"`

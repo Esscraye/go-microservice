@@ -4,6 +4,14 @@ go 1.21
 
 toolchain go1.23.2
 
+replace auth-service => ../auth-service
+
+require (
+	auth-service v0.0.0
+	gorm.io/driver/postgres v1.5.9
+	gorm.io/gorm v1.25.12
+)
+
 require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
@@ -15,6 +23,4 @@ require (
 	golang.org/x/crypto v0.28.0 // indirect
 	golang.org/x/sync v0.8.0 // indirect
 	golang.org/x/text v0.19.0 // indirect
-	gorm.io/driver/postgres v1.5.9 // indirect
-	gorm.io/gorm v1.25.12 // indirect
 )

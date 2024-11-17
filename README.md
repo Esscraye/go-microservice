@@ -17,6 +17,9 @@ Pour lancer ce projet, il vous suffit de suivre les étapes suivantes :
 2. Exécutez le fichier `docker-compose.yml` pour démarrer les services.
 3. Vous avez deux options pour interagir avec le système :
    - Allez dans le répertoire `/web-service` et exécutez `npm run dev` pour démarrer l'interface graphique.
+     - pour se connecter, utilisez les identifiants suivants :
+       - email : `user1@example.com`
+       - mot de passe : `password`
    - Exécutez le script `sh run-test.sh` pour tester tous les endpoints des services en ligne de commande et afficher les résultats.
 
 ## Conclusion

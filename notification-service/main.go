@@ -2,14 +2,15 @@ package main
 
 import (
 	"encoding/json"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
 	"log"
 	"net/http"
+
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 type Notification struct {
-	ID      string `gorm:"primaryKey" json:"id"`
+	ID      uint   `gorm:"primaryKey;autoIncrement" json:"id"`
 	UserID  string `json:"user_id"`
 	Message string `json:"message"`
 	Status  string `json:"status"`

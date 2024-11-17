@@ -14,7 +14,7 @@ import (
 )
 
 type Payment struct {
-	ID      string  `gorm:"primaryKey" json:"id"`
+	ID      uint    `gorm:"primaryKey;autoIncrement" json:"id"`
 	OrderID string  `json:"order_id"`
 	Amount  float64 `json:"amount"`
 	Status  string  `json:"status"`

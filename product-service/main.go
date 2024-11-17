@@ -13,7 +13,7 @@ import (
 )
 
 type Product struct {
-	ID       string `gorm:"primaryKey"`
+	ID       uint `gorm:"primaryKey;autoIncrement" json:"id"`
 	Name     string
 	Category string
 	Price    float64

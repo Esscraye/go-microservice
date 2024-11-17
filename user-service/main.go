@@ -13,7 +13,7 @@ import (
 )
 
 type User struct {
-	ID       string `gorm:"primaryKey" json:"id"`
+	ID       uint   `gorm:"primaryKey;autoIncrement" json:"id"` // Changez le type en uint et ajoutez autoIncrement
 	Name     string `json:"name"`
 	Email    string `json:"email"`
 	Password string `json:"password"`
@@ -81,6 +81,15 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+
+	// Vérifiez si l'utilisateur avec le même email existe déjà
+	var existingUser User
+	if err := db.Where("email = ?", user.Email).First(&existingUser).Error; err == nil {
+		http.Error(w, "Email already in use", http.StatusConflict) // Renvoie un code 409
+		return
+	}
+
+	// Créez l'utilisateur si l'email n'existe pas
 	if err := db.Create(&user).Error; err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

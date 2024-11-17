@@ -1,63 +1,24 @@
-# Microservices Architecture Case Study
+# Étude de Cas : Système de Commerce Électronique
 
-## Lancement du projet
+## Présentation
 
-Pour lancer le projet il vous faut avoir docker et docker-compose installé sur votre machine.
+Cette étude de cas a été réalisée pour mettre en pratique l'approche microservices, illustrant ainsi l'architecture et son fonctionnement. Ce projet représente une architecture microservices conçue pour gérer un système de commerce électronique.
 
-ensuite vous pouvez lancer les microservices avec la commande suivante:
+## Auteur
 
-```bash
-docker-compose up -d --build
-```
+- Léo Baleras
+- Vincent Thome
 
-Un script shel (run-test.sh) est disponible pour tester les services.
+## Lancer le Projet
 
-```bash
-./run-test.sh
-```
+Pour lancer ce projet, il vous suffit de suivre les étapes suivantes :
 
-Et pour arrêter et supprimer complètement les docker containers (attention si vous avez d'autres volumes docker la commande suivante les supprimera aussi):
+1. copier le fichier `.env.example` en `.env`
+2. Exécutez le fichier `docker-compose.yml` pour démarrer les services.
+3. Vous avez deux options pour interagir avec le système :
+   - Allez dans le répertoire `/web-service` et exécutez `npm run dev` pour démarrer l'interface graphique.
+   - Exécutez le script `sh run-test.sh` pour tester tous les endpoints des services en ligne de commande et afficher les résultats.
 
-```bash
-docker compose down --remove-orphans -v --rmi all && docker system prune -af && docker volume prune -af
-```
+## Conclusion
 
-## Group Members
-
-- Member 1
-- Member 2
-- Member 3
-
-## Project Description
-
-This project demonstrates the implementation of a microservices architecture using the Go programming language. The application consists of multiple services that communicate via APIs.
-
-## Application de Gestion de Commandes en Ligne
-
-Cette application permettrait de gérer les commandes en ligne pour un magasin. Elle pourrait inclure plusieurs microservices, chacun responsable d'une fonctionnalité spécifique.
-
-## Structure des Microservices
-
-1. Service de Gestion des Produits (Product Service)
-
-- CRUD pour les produits.
-- Recherche de produits par catégorie, nom, etc.
-
-2. Service de Gestion des Utilisateurs (User Service)
-
-- CRUD pour les utilisateurs.
-- Authentification et autorisation.
-
-3. Service de Gestion des Commandes (Order Service)
-
-- Création et gestion des commandes.
-- Suivi des commandes.
-
-4. Service de Paiement (Payment Service)
-
-- Traitement des paiements.
-- Gestion des transactions.
-
-5. Service de Notification (Notification Service)
-
-- Envoi de notifications par email ou SMS pour les confirmations de commande et les mises à jour.
+Ce projet démontre l'efficacité de l'architecture microservices dans la gestion d'un système de commerce électronique, en permettant une scalabilité et une flexibilité accrues.

@@ -26,7 +26,7 @@ user_service_tests() {
     echo
 
     echo "2. Creating a user"
-    curl -s -X POST -H "Content-Type: application/json" -H "Authorization: $jwt_token" -d '{"id":"3","name":"User3","email":"user3@example.com","password":"password"}' $uri/users
+    curl -s -X POST -H "Content-Type: application/json" -H "Authorization: $jwt_token" -d '{"id":3,"name":"User3","email":"user3@example.com","password":"password"}' $uri/users
     echo
 
     echo "3. Reading all users"
@@ -34,7 +34,7 @@ user_service_tests() {
     echo
 
     echo "4. Updating a user"
-    curl -s -X PUT -H "Content-Type: application/json" -H "Authorization: $jwt_token" -d '{"id":"3","name":"UpdatedUser","email":"updateduser@example.com","password":"newpassword"}' $uri/users/3
+    curl -s -X PUT -H "Content-Type: application/json" -H "Authorization: $jwt_token" -d '{"id":3,"name":"UpdatedUser","email":"updateduser@example.com","password":"newpassword"}' $uri/users/3
     echo
 
     echo "5. Reading the updated user"
@@ -63,7 +63,7 @@ product_service_tests() {
     echo
 
     echo "2. Creating a product"
-    curl -s -X POST -H "Content-Type: application/json" -H "Authorization: $jwt_token" -d '{"id":"3","name":"Product3","category":"Category3","price":300.0}' $uri/products
+    curl -s -X POST -H "Content-Type: application/json" -H "Authorization: $jwt_token" -d '{"id":3,"name":"Product3","category":"Category3","price":300.0}' $uri/products
     echo
 
     echo "3. Reading all products"
@@ -71,7 +71,7 @@ product_service_tests() {
     echo
 
     echo "4. Updating a product"
-    curl -s -X PUT -H "Content-Type: application/json" -H "Authorization: $jwt_token" -d '{"id":"3","name":"UpdatedProduct","category":"UpdatedCategory","price":350.0}' $uri/products/3
+    curl -s -X PUT -H "Content-Type: application/json" -H "Authorization: $jwt_token" -d '{"id":3,"name":"UpdatedProduct","category":"UpdatedCategory","price":350.0}' $uri/products/3
     echo
 
     echo "5. Reading the updated product"
@@ -100,9 +100,9 @@ order_service_tests() {
     echo
 
     echo "2. Creating many orders"
-    curl -s -X POST -H "Content-Type: application/json" -H "Authorization: $jwt_token" -d '{"id":"1","user_id":"1","product_id":"1","quantity":2,"status":"pending"}' $uri/orders
-    curl -s -X POST -H "Content-Type: application/json" -H "Authorization: $jwt_token" -d '{"id":"2","user_id":"1","product_id":"2","quantity":2,"status":"pending"}' $uri/orders
-    curl -s -X POST -H "Content-Type: application/json" -H "Authorization: $jwt_token" -d '{"id":"3","user_id":"2","product_id":"1","quantity":2,"status":"pending"}' $uri/orders
+    curl -s -X POST -H "Content-Type: application/json" -H "Authorization: $jwt_token" -d '{"id":1,"user_id":"1","product_id":"1","quantity":2,"status":"pending"}' $uri/orders
+    curl -s -X POST -H "Content-Type: application/json" -H "Authorization: $jwt_token" -d '{"id":2,"user_id":"1","product_id":"2","quantity":2,"status":"pending"}' $uri/orders
+    curl -s -X POST -H "Content-Type: application/json" -H "Authorization: $jwt_token" -d '{"id":3,"user_id":"2","product_id":"1","quantity":2,"status":"pending"}' $uri/orders
     echo
 
     echo "3. Reading all orders"
@@ -110,7 +110,7 @@ order_service_tests() {
     echo
 
     echo "4. Updating an order"
-    curl -s -X PUT -H "Content-Type: application/json" -H "Authorization: $jwt_token" -d '{"id":"1","user_id":"1","product_id":"1","quantity":3,"status":"shipped"}' $uri/orders/1
+    curl -s -X PUT -H "Content-Type: application/json" -H "Authorization: $jwt_token" -d '{"id":1,"user_id":"1","product_id":"1","quantity":3,"status":"shipped"}' $uri/orders/1
     echo
 
     echo "5. Reading the updated order"
@@ -139,7 +139,7 @@ payment_service_tests() {
     echo
 
     echo "2. Creating a payment"
-    curl -s -X POST -H "Content-Type: application/json" -H "Authorization: $jwt_token" -d '{"id":"1","order_id":"2","amount":100.0,"status":"pending"}' $uri/payments
+    curl -s -X POST -H "Content-Type: application/json" -H "Authorization: $jwt_token" -d '{"id":1,"order_id":"2","amount":100.0,"status":"pending"}' $uri/payments
     echo
 
     echo "3. Reading all payments"
@@ -147,7 +147,7 @@ payment_service_tests() {
     echo
 
     echo "4. Updating a payment"
-    curl -s -X PUT -H "Content-Type: application/json" -H "Authorization: $jwt_token" -d '{"id":"1","order_id":"2","amount":150.0,"status":"completed"}' $uri/payments/1
+    curl -s -X PUT -H "Content-Type: application/json" -H "Authorization: $jwt_token" -d '{"id":1,"order_id":"2","amount":150.0,"status":"completed"}' $uri/payments/1
     echo
 
     echo "5. Reading the updated payment"
@@ -176,7 +176,7 @@ notification_service_tests() {
     echo
 
     echo "2. Creating a notification"
-    curl -s -X POST -H "Content-Type: application/json" -H "Authorization: $jwt_token" -d '{"id":"1","user_id":"1","message":"Your order has been shipped","status":"pending"}' $uri/notifications
+    curl -s -X POST -H "Content-Type: application/json" -H "Authorization: $jwt_token" -d '{"id":1,"user_id":"1","message":"Your order has been shipped","status":"pending"}' $uri/notifications
     echo
 
     echo "3. Reading all notifications"
@@ -184,7 +184,7 @@ notification_service_tests() {
     echo
 
     echo "4. Updating a notification"
-    curl -s -X PUT -H "Content-Type: application/json" -H "Authorization: $jwt_token" -d '{"id":"1","user_id":"1","message":"Your order has been delivered","status":"completed"}' $uri/notifications/1
+    curl -s -X PUT -H "Content-Type: application/json" -H "Authorization: $jwt_token" -d '{"id":1,"user_id":"1","message":"Your order has been delivered","status":"completed"}' $uri/notifications/1
     echo
 
     echo "5. Reading the updated notification"

@@ -101,11 +101,11 @@ func checkOrderExists(orderID string, token string) bool {
 	}
 	req, err := http.NewRequest("GET", fmt.Sprintf("http://order-service:8083/orders/%s", orderID), nil)
 	if err != nil {
-		return false // Gérer l'erreur si nécessaire
+		return false
 	}
-	req.Header.Set("Authorization", token) // Ajouter le token JWT dans l'en-tête
+	req.Header.Set("Authorization", token)
 
-	resp, err := client.Do(req) // Utiliser Do pour envoyer la requête
+	resp, err := client.Do(req)
 	if err != nil || resp.StatusCode != http.StatusOK {
 		return false
 	}

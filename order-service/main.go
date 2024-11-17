@@ -109,11 +109,11 @@ func checkProductAvailability(productID string, token string) bool {
 	for i := 0; i < 3; i++ {
 		req, err := http.NewRequest("GET", fmt.Sprintf("%s/products/%s", productServiceURL, productID), nil)
 		if err != nil {
-			continue // Gérer l'erreur si nécessaire
+			continue
 		}
-		req.Header.Set("Authorization", token) // Ajouter le token JWT dans l'en-tête
+		req.Header.Set("Authorization", token)
 
-		resp, err := client.Do(req) // Utiliser Do pour envoyer la requête
+		resp, err := client.Do(req)
 		if err == nil && resp.StatusCode == http.StatusOK {
 			return true
 		}

@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 const SERVICES = {
-  auth: 'http://localhost:8080',
-  user: 'http://localhost:8082',
-  product: 'http://localhost:8081',
-  order: 'http://localhost:8083',
-  payment: 'http://localhost:8084',
-  notification: 'http://localhost:8085'
+  auth: 'http://auth-service:8080',
+  user: 'http://user-service:8082',
+  product: 'http://product-service:8081',
+  order: 'http://order-service:8083',
+  payment: 'http://payment-service:8084',
+  notification: 'http://notification-service:8085'
 }
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
